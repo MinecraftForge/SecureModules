@@ -105,7 +105,6 @@ public class UnionFileSystem extends FileSystem {
         }
     }
     private final UnionPath root = new UnionPath(this, "/");
-    private final UnionPath notExistingPath = new UnionPath(this, "/SNOWMAN");
     private final UnionFileSystemProvider provider;
     private final String key;
     private final List<Path> basepaths;
@@ -254,7 +253,7 @@ public class UnionFileSystem extends FileSystem {
     private Optional<Path> findFirstFiltered(final UnionPath path) {
         for (Path p : this.basepaths) {
             Path realPath = toRealPath(p, path);
-            if (realPath != notExistingPath && testFilter(realPath, p)) {
+            if (testFilter(realPath, p)) {
                 if (realPath.getFileSystem() == FileSystems.getDefault()) {
                     if (realPath.toFile().exists()) {
                         return Optional.of(realPath);
@@ -278,11 +277,9 @@ public class UnionFileSystem extends FileSystem {
             for (Path base : this.basepaths) {
                 // We need to know the full path for the filter
                 Path realPath = toRealPath(base, path);
-                if (realPath != notExistingPath) {
-                    Optional<BasicFileAttributes> fileAttributes = this.getFileAttributes(realPath);
-                        if (fileAttributes.isPresent() && testFilter(realPath, base)) {
-                        return (A) fileAttributes.get();
-                    }
+                Optional<BasicFileAttributes> fileAttributes = this.getFileAttributes(realPath);
+                if (fileAttributes.isPresent() && testFilter(realPath, base)) {
+                    return (A) fileAttributes.get();
                 }
             }
             throw new NoSuchFileException(path.toString());
@@ -346,9 +343,7 @@ public class UnionFileSystem extends FileSystem {
         final var allpaths = new LinkedHashSet<Path>();
         for (final var bp : basepaths) {
             final var dir = toRealPath(bp, path);
-            if (dir == notExistingPath) {
-                continue;
-            } else if (dir.getFileSystem() == FileSystems.getDefault() && !dir.toFile().exists()) {
+            if (dir.getFileSystem() == FileSystems.getDefault() && !dir.toFile().exists()) {
                 continue;
             } else if (dir.getFileSystem().provider().getScheme().equals("jar") && !zipFsExists(this, dir)) {
                 continue;
