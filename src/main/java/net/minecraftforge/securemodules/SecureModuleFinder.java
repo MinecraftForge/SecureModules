@@ -80,13 +80,7 @@ public class SecureModuleFinder implements ModuleFinder {
         }
     }
 
-    private static class Reader implements ModuleReader {
-        private final SecureJar.ModuleDataProvider jar;
-
-        public Reader(final SecureJar.ModuleDataProvider jar) {
-            this.jar = jar;
-        }
-
+    private record Reader(SecureJar.ModuleDataProvider jar) implements ModuleReader {
         @Override
         public Optional<URI> find(final String name) throws IOException {
             return jar.findFile(name);
