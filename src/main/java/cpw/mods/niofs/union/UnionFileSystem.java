@@ -350,7 +350,7 @@ public class UnionFileSystem extends FileSystem {
                 continue;
             } else if (dir.getFileSystem() == FileSystems.getDefault() && !dir.toFile().exists()) {
                 continue;
-            } else if (dir.getFileSystem().provider().getScheme() == "jar" && !zipFsExists(this, dir)) {
+            } else if (dir.getFileSystem().provider().getScheme().equals("jar") && !zipFsExists(this, dir)) {
                 continue;
             } else if (Files.notExists(dir)) {
                 continue;
