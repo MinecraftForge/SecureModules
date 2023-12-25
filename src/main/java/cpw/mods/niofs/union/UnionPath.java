@@ -231,13 +231,13 @@ public class UnionPath implements Path {
     public Path relativize(final Path other) {
         if (other.getFileSystem()!=this.getFileSystem()) throw new IllegalArgumentException("Wrong filesystem");
         if (other instanceof UnionPath p) {
-            if (this.absolute != p.absolute) {
+            //if (this.absolute != p.absolute) {
                 // Should not be allowed but union fs relies on it
                 // also there is no such concept of a current directory for union paths
                 // meaning absolute and relative paths should have the same effect,
                 // so we just allow this.
                 //throw new IllegalArgumentException("Different types of path");
-            }
+            //}
             var length = Math.min(this.pathParts.length, p.pathParts.length);
             int i = 0;
             while (i < length) {
