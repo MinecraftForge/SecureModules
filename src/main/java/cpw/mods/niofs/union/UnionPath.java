@@ -1,6 +1,12 @@
+/*
+ * Copyright (c) Forge Development LLC
+ * SPDX-License-Identifier: LGPL-2.1-only
+ */
+
 package cpw.mods.niofs.union;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.LinkOption;
@@ -22,10 +28,10 @@ public class UnionPath implements Path {
     private final boolean absolute;
     private final boolean empty;
     private final String[] pathParts;
-    
+
     // Store the normalized path after it has been created first
     private UnionPath normalized;
-    
+
     UnionPath(final UnionFileSystem fileSystem, final String... pathParts) {
         this.fileSystem = fileSystem;
         if (pathParts.length == 0) {
@@ -53,7 +59,7 @@ public class UnionPath implements Path {
     UnionPath(final UnionFileSystem fileSystem, boolean absolute, final String... pathParts) {
         this(fileSystem, absolute, false, pathParts);
     }
-    
+
     private UnionPath(final UnionFileSystem fileSystem, boolean absolute, boolean isNormalized, final String... pathParts) {
         this.fileSystem = fileSystem;
         if (!absolute && (pathParts.length == 0 || (pathParts.length == 1 && pathParts[0].isEmpty()))) {
@@ -110,7 +116,7 @@ public class UnionPath implements Path {
             return null;
         return this.fileSystem.getRoot();
     }
-    
+
     @Override
     public Path getFileName() {
         if (this.empty) {
@@ -333,5 +339,9 @@ public class UnionPath implements Path {
     @Override
     public String toString() {
         return (this.absolute ? UnionFileSystem.SEP_STRING : "") + String.join(UnionFileSystem.SEP_STRING, this.pathParts);
+    }
+
+    public InputStream buildInputStream() {
+        return fileSystem.buildInputStream(this);
     }
 }

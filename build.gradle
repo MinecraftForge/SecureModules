@@ -1,204 +1,106 @@
-buildscript {
-    dependencies {
-        classpath('de.jjohannes.gradle:extra-java-module-info:0.14')
-    }
-}
+import net.minecraftforge.gradleutils.PomUtils
 
 plugins {
-    id 'com.github.ben-manes.versions' version '0.42.0'
-    id 'net.minecraftforge.gradleutils' version '2.+'
+    id 'java-library'
+    id 'maven-publish'
+    id 'eclipse'
+    id 'org.cadixdev.licenser' version '0.6.1'
+    id 'org.gradlex.extra-java-module-info' version '1.4.2'
+    id 'net.minecraftforge.gradleutils' version '[2.3.0,2.4)'
 }
 
-apply plugin: 'maven-publish'
+group = 'net.minecraftforge'
+version = gradleutils.tagOffsetVersion
+print("Version: $version")
 
-allprojects {
-    apply plugin: 'java-library'
-    apply plugin: 'eclipse'
-    apply plugin: 'de.jjohannes.extra-java-module-info'
-
-    group 'cpw.mods'
-    java {
-        toolchain.languageVersion = JavaLanguageVersion.of(16)
-        modularity.inferModulePath.set(true)
-    }
-    version = gradleutils.getTagOffsetVersion()
-
-    repositories {
-        mavenLocal()
-        maven {
-            name = 'forge'
-            url = 'https://maven.minecraftforge.net/'
-        }
-    }
-
-    dependencies.testRuntimeOnly('org.apiguardian:apiguardian-api:1.1.2') // No idea why, but windows needs this to not explode.
-
-    extraJavaModuleInfo {
-        failOnMissingModuleInfo = false
-        automaticModule('jmh-core-1.35.jar', 'jmh.core')
-    }
-
-    def isNonStable = { String version ->
-        def stableKeyword = ['RELEASE', 'FINAL', 'GA'].any { type -> version.toUpperCase().contains(type) }
-        def regex = /^[0-9,.v-]+(-r)?$/
-        return !stableKeyword && !(version ==~ regex)
-    }
-
-    dependencyUpdates {
-        rejectVersionIf {
-            isNonStable(it.candidate.version)
-        }
-    }
-
-    // Hack eclipse into knowing that the gradle deps are modules
-    eclipse {
-        classpath {
-            containers 'org.eclipse.buildship.core.gradleclasspathcontainer'
-            file {
-                whenMerged {
-                    entries.findAll { it.kind == 'con' && it.path == 'org.eclipse.buildship.core.gradleclasspathcontainer' }.each {
-                        it.entryAttributes['module'] = 'true'
-                    }
-                }
-            }
-        }
-    }
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(16)
+    modularity.inferModulePath.set(true)
+    withSourcesJar()
 }
-
 
 repositories {
     mavenCentral()
+    maven gradleutils.forgeMaven
 }
 
-def isNonStable = { String version ->
-    def stableKeyword = ['RELEASE', 'FINAL', 'GA'].any { it -> version.toUpperCase().contains(it) }
-    def regex = /^[0-9,.v-]+(-r)?$/
-    return !stableKeyword && !(version ==~ regex)
-}
-
-dependencyUpdates {
-    rejectVersionIf {
-        isNonStable(it.candidate.version)
-    }
-}
-
-// We can't use toolchains because we need --add-export
-//java.toolchain.languageVersion = JavaLanguageVersion.of(16)
-compileJava {
-    sourceCompatibility = JavaVersion.VERSION_16
-    targetCompatibility = JavaVersion.VERSION_16
-    options.compilerArgs += [
-            '-Xlint:unchecked',
-            '--add-exports=java.base/sun.security.util=cpw.mods.securejarhandler',
-    ]
-}
-
-test {
-    //exclude '**/*'
-    useJUnitPlatform()
-    jvmArgs += [
-            '--add-opens=java.base/java.lang.invoke=ALL-UNNAMED'
-    ]
-}
-
-compileTestJava {
-    sourceCompatibility = JavaVersion.VERSION_16
-    targetCompatibility = JavaVersion.VERSION_16
-    options.compilerArgs += [
-            '--add-modules=jdk.zipfs',
-            '--add-exports=jdk.zipfs/jdk.nio.zipfs=ALL-UNNAMED'
-    ]
-}
-
-group = 'cpw.mods'
-
-version = gradleutils.getTagOffsetVersion()
-logger.lifecycle('Version: ' + version)
-
-ext.asmVersion = 9.3
 dependencies {
-    api("org.ow2.asm:asm:${asmVersion}")
-    api("org.ow2.asm:asm-tree:${asmVersion}")
-    api("org.ow2.asm:asm-commons:${asmVersion}")
-    testImplementation('org.junit.jupiter:junit-jupiter-api:5.8.+')
-    testRuntimeOnly('org.junit.jupiter:junit-jupiter-engine:5.8.+')
+    api(libs.bundles.asm)
+    implementation(libs.unsafe)
+}
+
+extraJavaModuleInfo {
+    failOnMissingModuleInfo = false
 }
 
 changelog {
-    fromTag "0.9"
+    from '0.9'
 }
 
-task sourcesJar(type: Jar) {
-    archiveClassifier = 'sources'
-    from sourceSets.main.allSource
-}
-
-//jmh {
-//    benchmarkMode = ['avgt' ]
-//    profilers = [ 'stack', 'jfr:dir=./build/results/jmh/' ]
-//    timeOnIteration = '3s'
-//    warmup = '2s'
-//    warmupIterations = 3
-//    iterations = 3
-//    fork = 3
-//    timeUnit = 'us'
-//    // JMH loads the main sourceset without a module context, so add exports and opens for required stuff to all unnamed and disable the missing module crash
-//    jvmArgsPrepend = ['--add-opens java.base/java.util.jar=ALL-UNNAMED --add-exports java.base/sun.security.util=ALL-UNNAMED -Dsecurejarhandler.throwOnMissingModule=false']
-//}
-
-//tasks['jmh'].dependsOn(clean)
-
-jar {
+tasks.named('jar', Jar).configure {
     manifest {
-        attributes(
-                'Specification-Title': 'securejarhandler',
-                'Specification-Vendor': 'forge',
-                'Specification-Version': '1', // We are version 1 of ourselves
-                'Implementation-Title': project.name,
-                'Implementation-Version': "${project.version}+${System.getenv('BUILD_NUMBER')?:0}+${gradleutils.gitInfo.branch}.${gradleutils.gitInfo.abbreviatedId}",
-                'Implementation-Vendor':'forge',
-                'Implementation-Timestamp': java.time.Instant.now().toString(),
-                'Git-Commit': gradleutils.gitInfo.abbreviatedId,
-                'Git-Branch': gradleutils.gitInfo.branch,
-                'Build-Number': "${System.getenv("BUILD_NUMBER")?:0}",
-        )
+        attributes([
+            'Specification-Title':    'SecureModules',
+            'Specification-Vendor':   'Forge Development LLC',
+            'Specification-Version':  gradleutils.gitInfo.tag,
+            'Implementation-Title':   'SecureModules',
+            'Implementation-Version': project.version,
+            'Implementation-Vendor':  'Forge Development LLC'
+        ] as LinkedHashMap)
     }
 }
 
-artifacts {
-    archives jar
-    archives sourcesJar
+tasks.register('writeManifest') {
+    doLast {
+        jar.manifest.writeTo(file('src/main/resources/META-INF/MANIFEST.MF'))
+    }
+}
+
+eclipse {
+    synchronizationTasks writeManifest
+    autoBuildTasks writeManifest 
+}
+
+license {
+    header = file("LICENSE-header.txt")
 }
 
 publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            from components.java
-            artifact sourcesJar
-            pom {
-                name = 'Secure Modular Jar handler'
-                description = 'Making the Java modular system provide security information'
-                url = 'https://github.com/McModLauncher/securejarhandler'
-                scm {
-                    url = 'https://github.com/McModLauncher/securejarhandler'
-                    connection = 'scm:git:git://github.com/McModLauncher/securejarhandler.git'
-                    developerConnection = 'scm:git:git@github.com:McModLauncher/securejarhandler.git'
-                }
-                issueManagement {
-                    system = 'github'
-                    url = 'https://github.com/McModLauncher/securejarhandler/issues'
-                }
-
-                developers {
-                    developer {
-                        id = 'cpw'
-                        name = 'cpw'
-                    }
-                }
+    publications.register('mavenJava', MavenPublication) {
+        from components.java
+        artifactId = 'securemodules'
+        pom {
+            name = 'Secure Modular handler'
+            description = 'Making the Java modular system provide security information'
+            license PomUtils.Licenses.LGPLv2_1
+            developers {
+                developer PomUtils.Developers.cpw
+                developer PomUtils.Developers.LexManos
             }
         }
     }
     repositories {
-        maven gradleutils.getPublishingForgeMaven()
+        maven gradleutils.publishingForgeMaven
     }
+}
+
+// Hack eclipse into knowing that the gradle deps are modules
+eclipse.classpath {
+    containers 'org.eclipse.buildship.core.gradleclasspathcontainer'
+    file.whenMerged { entries.findAll { it.kind == 'lib' || it.path == 'org.eclipse.buildship.core.gradleclasspathcontainer' }.each { it.entryAttributes['module'] = 'true' } }
+}
+
+allprojects {
+    ext.VALID_VMS = [
+        'Adoptium':  [16, 17, 18, 19, 20, 21],
+        'Amazon':    [16, 17, 18, 19, 20, 21],
+        'Azul':      (16..21),
+        'BellSoft':  (16..21),
+        'Graal_VM':  [16, 17,     19, 20, 21],
+        'IBM':       [16, 17, 18, 19, 20    ],
+        'Microsoft': [16, 17,             21],
+        'Oracle':    (16..21),
+        'SAP':       (16..20)
+    ]
+    //ext.VALID_VMS = [ 'Adoptium':  [16] ]
 }

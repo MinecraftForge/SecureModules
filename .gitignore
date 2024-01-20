@@ -17,13 +17,11 @@
 /*/.gradle
 
 #misc
-/out/
-/forge-1.16.5-36.1.16.jar
-/tmp/
 /repo/
-/Bookshelf-1.16.4-9.0.7-TAMPERED.jar
-/Bookshelf-1.16.4-9.0.7-UNTAMPERED.jar
-/inventorysorter-1.16.1-18.0.0.jar
-/modlauncher-9.0.1.jar
-/test.jar
 *.jfr
+*.factorypath
+/sm-jmh/.apt_generated/
+/jmh_results.md
+/test_results.html
+/artifacts/
+/test_artifacts.zip

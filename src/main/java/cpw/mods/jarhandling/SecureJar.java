@@ -1,13 +1,15 @@
+/*
+ * Copyright (c) Forge Development LLC
+ * SPDX-License-Identifier: LGPL-2.1-only
+ */
+
 package cpw.mods.jarhandling;
 
 import cpw.mods.jarhandling.impl.Jar;
 
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.UncheckedIOException;
 import java.lang.module.ModuleDescriptor;
 import java.net.URI;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.CodeSigner;
 import java.util.List;
@@ -55,17 +57,21 @@ public interface SecureJar {
     }
 
     static SecureJar from(Function<SecureJar, JarMetadata> metadataSupplier, final Path... paths) {
-        return from(Manifest::new, metadataSupplier, paths);
+        return from(metadataSupplier, null, paths);
     }
 
     static SecureJar from(Function<SecureJar, JarMetadata> metadataSupplier, BiPredicate<String, String> filter, final Path... paths) {
-        return from(Manifest::new, metadataSupplier, filter, paths);
+        return new Jar(metadataSupplier, filter, paths);
     }
 
+    /** Supplying a manifest is stupid. */
+    @Deprecated(forRemoval = true, since = "2.2")
     static SecureJar from(Supplier<Manifest> defaultManifest, Function<SecureJar, JarMetadata> metadataSupplier, final Path... paths) {
         return from(defaultManifest, metadataSupplier, null, paths);
     }
 
+    /** Supplying a manifest is stupid. */
+    @Deprecated(forRemoval = true, since = "2.2")
     static SecureJar from(Supplier<Manifest> defaultManifest, Function<SecureJar, JarMetadata> metadataSupplier, BiPredicate<String, String> filter, final Path... paths) {
         return new Jar(defaultManifest, metadataSupplier, filter, paths);
     }
@@ -80,19 +86,11 @@ public interface SecureJar {
 
     Path getRootPath();
 
+    // TODO: [SM] Make this record into an interface for API
     record Provider(String serviceName, List<String> providers) {
-        public static Provider fromPath(final Path path, final BiPredicate<String, String> pkgFilter) {
-            final var sname = path.getFileName().toString();
-            try {
-                var entries = Files.readAllLines(path).stream()
-                        .map(String::trim)
-                        .filter(l->l.length() > 0 && !l.startsWith("#"))
-                        .filter(p-> pkgFilter == null || pkgFilter.test(p.replace('.','/'), ""))
-                        .toList();
-                return new Provider(sname, entries);
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
-            }
+        @Deprecated
+        public static Provider fromPath(Path path, BiPredicate<String, String> filter) {
+            return Jar.getProvider(path, filter);
         }
     }
 

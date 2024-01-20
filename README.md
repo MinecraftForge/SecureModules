@@ -1,6 +1,6 @@
-# Secure Jar Handler
+# Secure Modules
 
-Handle Jars with security information properly in modular world.
-Necessary because Java does a shit job of it itself.
+Attempts to reintroduce CodeSigners to Modules at runtime, Normal java just completely ignores signatures at runtime.
 
-MIT license, cos everyone should be able to use this. So gross.
+This is a fork of [SecureJarHandler](https://github.com/McModLauncher/securejarhandler) which was originally under the Forge organization but moved to try and unite the community. 
+It was moved back to allow for fixes and re-works. Compatiblity will be maintained for the interm however compatibility in Minecraft 1.21+ is not a goal.

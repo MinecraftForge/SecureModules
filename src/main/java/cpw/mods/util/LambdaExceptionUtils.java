@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) Forge Development LLC
+ * SPDX-License-Identifier: LGPL-2.1-only
+ */
+
 package cpw.mods.util;
 
 import java.util.function.BiConsumer;
@@ -64,7 +69,7 @@ public class LambdaExceptionUtils {
     /**
      * uncheck(() -> Class.forName("xxx"));
      */
-    public static void uncheck(Runnable_WithExceptions t) {
+    public static void uncheck(Runnable_WithExceptions<?> t) {
         try {
             t.run();
         } catch (Exception exception) {

@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) Forge Development LLC
+ * SPDX-License-Identifier: LGPL-2.1-only
+ */
+
 package cpw.mods.jarhandling;
 
 import cpw.mods.jarhandling.impl.ModuleJarMetadata;
@@ -13,15 +18,41 @@ public interface JarMetadata {
     String name();
     String version();
     ModuleDescriptor descriptor();
+
+    static JarMetadata from(final SecureJar jar, final Path... paths) {
+        return fromImpl(jar, paths);
+    }
+
+    /**
+     * Attempts to find the module and version information based on filename/path.
+     * Supports files laid out in Maven style directories/filenames.
+     * As well as files that have 'version looking' endings. Currently defined as Everything after the last - being a digit or .
+     */
+    static SimpleJarMetadata fromFileName(final Path path, final Set<String> pkgs, final List<SecureJar.Provider> providers) {
+        return fromFileNameImpl(path, pkgs, providers);
+    }
+
+    /* ======================================================================
+     * 				BACKWARD COMPATIBILITY CRAP
+     * ======================================================================
+     */
     // ALL from jdk.internal.module.ModulePath.java
+    @Deprecated(forRemoval = true)
     Pattern DASH_VERSION = Pattern.compile("-([.\\d]+)");
+    @Deprecated(forRemoval = true)
     Pattern NON_ALPHANUM = Pattern.compile("[^A-Za-z0-9]");
+    @Deprecated(forRemoval = true)
     Pattern REPEATING_DOTS = Pattern.compile("(\\.)(\\1)+");
+    @Deprecated(forRemoval = true)
     Pattern LEADING_DOTS = Pattern.compile("^\\.");
+    @Deprecated(forRemoval = true)
     Pattern TRAILING_DOTS = Pattern.compile("\\.$");
     // Extra sanitization
+    @Deprecated(forRemoval = true)
     Pattern MODULE_VERSION = Pattern.compile("(?<=^|-)([\\d][.\\d]*)");
+    @Deprecated(forRemoval = true)
     Pattern NUMBERLIKE_PARTS = Pattern.compile("(?<=^|\\.)([0-9]+)"); // matches asdf.1.2b because both are invalid java identifiers
+    @Deprecated(forRemoval = true)
     List<String> ILLEGAL_KEYWORDS = List.of(
         "abstract","continue","for","new","switch","assert",
         "default","goto","package","synchronized","boolean",
@@ -31,9 +62,15 @@ public interface JarMetadata {
         "extends","int","short","try","char","final","interface",
         "static","void","class","finally","long","strictfp",
         "volatile","const","float","native","super","while");
+    @Deprecated(forRemoval = true)
     Pattern KEYWORD_PARTS = Pattern.compile("(?<=^|\\.)(" + String.join("|", ILLEGAL_KEYWORDS) + ")(?=\\.|$)");
 
-    static JarMetadata from(final SecureJar jar, final Path... path) {
+
+    /* ======================================================================
+     * 				INTERNAL IMPLEMENTATION CRAP
+     * ======================================================================
+     */
+    private static JarMetadata fromImpl(final SecureJar jar, final Path... path) {
         if (path.length==0) throw new IllegalArgumentException("Need at least one path");
         final var pkgs = jar.getPackages();
         var mi = jar.moduleDataProvider().findFile("module-info.class");
@@ -50,8 +87,8 @@ public interface JarMetadata {
             }
         }
     }
-    static SimpleJarMetadata fromFileName(final Path path, final Set<String> pkgs, final List<SecureJar.Provider> providers) {
 
+    private static SimpleJarMetadata fromFileNameImpl(final Path path, final Set<String> pkgs, final List<SecureJar.Provider> providers) {
         // detect Maven-like paths
         Path versionMaybe = path.getParent();
         if (versionMaybe != null)
@@ -76,12 +113,12 @@ public interface JarMetadata {
         }
 
         // fallback parsing
-        var fn = path.getFileName().toString();     
+        var fn = path.getFileName().toString();
         var lastDot = fn.lastIndexOf('.');
         if (lastDot > 0) {
             fn = fn.substring(0, lastDot); // strip extension if possible
         }
-       
+
         var mat = DASH_VERSION.matcher(fn);
         if (mat.find()) {
             var potential = fn.substring(mat.start() + 1);
