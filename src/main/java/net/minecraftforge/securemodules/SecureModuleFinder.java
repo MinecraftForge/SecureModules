@@ -24,7 +24,7 @@ import java.util.stream.Stream;
 public class SecureModuleFinder implements ModuleFinder {
     private final Map<String, ModuleReference> references = new HashMap<>();
 
-    protected SecureModuleFinder(final SecureJar... jars) {
+    protected SecureModuleFinder(final Iterable<SecureJar> jars) {
         for (var jar : jars) {
             var data = jar.moduleDataProvider();
             if (references.containsKey(data.name()))
@@ -32,6 +32,10 @@ public class SecureModuleFinder implements ModuleFinder {
             else
                 references.put(data.name(), new Reference(data));
         }
+    }
+
+    protected SecureModuleFinder(final SecureJar... jars) {
+        this(Arrays.asList(jars));
     }
 
     @Override
@@ -45,6 +49,10 @@ public class SecureModuleFinder implements ModuleFinder {
     }
 
     public static SecureModuleFinder of(SecureJar... jars) {
+        return new SecureModuleFinder(jars);
+    }
+
+    public static SecureModuleFinder of(Iterable<SecureJar> jars) {
         return new SecureModuleFinder(jars);
     }
 

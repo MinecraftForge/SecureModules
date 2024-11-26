@@ -357,7 +357,7 @@ public class Jar implements SecureJar {
         var ret = new HashSet<String>();
         for (var file : files) {
             int idx = file.lastIndexOf('/');
-            if (!file.endsWith(".class") || idx == -1)
+            if (idx == -1 || !file.endsWith(".class"))
                 continue;
             ret.add(file.substring(0, idx).replace('/', '.'));
         }
