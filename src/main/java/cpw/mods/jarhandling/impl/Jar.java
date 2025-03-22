@@ -280,8 +280,8 @@ public class Jar implements SecureJar {
         if (!Files.exists(services))
             return List.of();
 
-        try {
-            return Files.list(services)
+        try (var servicesDirStream = Files.list(services)) {
+            return servicesDirStream
                 .filter(Files::isRegularFile)
                 .map(path -> getProvider(path, filter))
                 .toList();
@@ -324,8 +324,8 @@ public class Jar implements SecureJar {
 
         var ret = new HashMap<String, String>();
         var versions = new HashMap<String, Integer>();
-        try {
-            Files.walk(versionsDir)
+        try (var versionsDirStream = Files.walk(versionsDir)) {
+            versionsDirStream
                 .filter(Files::isRegularFile)
                 .map(filesystemRoot::relativize)
                 .forEach(path -> {
@@ -344,8 +344,8 @@ public class Jar implements SecureJar {
 
     private Set<String> gatherPackages() {
         var files = new HashSet<String>(this.nameOverrides.keySet());
-        try {
-            Files.walk(this.filesystemRoot)
+        try (var filesStream = Files.walk(this.filesystemRoot)) {
+            filesStream
                 .filter(p -> Files.isRegularFile(p) && !"META-INF".equals(p.getName(0).toString()))
                 .map(p -> this.filesystemRoot.relativize(p).toString().replace('\\', '/'))
                 .forEach(files::add);
