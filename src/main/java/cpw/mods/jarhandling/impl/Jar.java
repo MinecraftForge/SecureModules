@@ -49,7 +49,6 @@ public class Jar implements SecureJar {
     private final Manifest manifest;
     private final Hashtable<String, CodeSigner[]> pendingSigners = new Hashtable<>();
     private final Hashtable<String, CodeSigner[]> verifiedSigners = new Hashtable<>();
-    private final ManifestVerifier verifier = new ManifestVerifier();
     private final Map<String, StatusData> statusData = new HashMap<>();
     private final JarMetadata metadata;
     private final Path filesystemRoot;
@@ -234,7 +233,7 @@ public class Jar implements SecureJar {
         if (data != null)
             return data.signers();
 
-        var signers = verifier.verify(this.manifest, pendingSigners, verifiedSigners, name, bytes);
+        var signers = ManifestVerifier.verify(this.manifest, pendingSigners, verifiedSigners, name, bytes);
         if (signers == null) {
             this.statusData.put(name, new StatusData(Status.INVALID, null));
             return null;
