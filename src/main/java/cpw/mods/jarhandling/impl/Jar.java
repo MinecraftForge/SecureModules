@@ -204,15 +204,13 @@ public class Jar implements SecureJar {
                     fs = UFSP.newFileSystem(paths[0], Map.of("filter", (BiPredicate<String, String>)(a, b) -> true));
                 }
             } else {
-                var map = new HashMap<String, Object>();
-                if (filter != null)
-                    map.put("filter", filter);
-
                 var lst = new ArrayList<>(Arrays.asList(paths));
                 var base = lst.remove(0);
-                map.put("additional", lst);
 
-                fs = UFSP.newFileSystem(base, map);
+                if (filter == null)
+                    fs = UFSP.newFileSystem(base, Map.of("additional", lst));
+                else
+                    fs = UFSP.newFileSystem(base, Map.of("filter", filter, "additional", lst));
             }
         } catch (IOException | URISyntaxException e) {
             return sneak(e);
@@ -323,7 +321,7 @@ public class Jar implements SecureJar {
             return Map.of();
 
         var ret = new HashMap<String, String>();
-        var versions = new HashMap<String, Integer>();
+        var versions = new HashMap<String, Integer>(8);
         try (var versionsDirStream = Files.walk(versionsDir)) {
             versionsDirStream
                 .filter(Files::isRegularFile)
@@ -339,7 +337,7 @@ public class Jar implements SecureJar {
         } catch (IOException e) {
             sneak(e);
         }
-        return ret;
+        return Map.copyOf(ret);
     }
 
     private Set<String> gatherPackages() {
