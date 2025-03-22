@@ -252,7 +252,7 @@ public class UnionFileSystemProvider extends FileSystemProvider {
         }
     }
 
-    private class UnionBasicFileAttributeView implements BasicFileAttributeView {
+    private final class UnionBasicFileAttributeView implements BasicFileAttributeView {
 
         private final Path path;
         private final LinkOption[] options;

@@ -64,7 +64,6 @@ public class SecureModuleClassLoader extends SecureClassLoader {
     // TODO: [SM][Deprecation] Make private once cpw.mods.cl.ModuleClassLoader is deleted
     protected final Configuration configuration;
     private final ClassLoader parent;
-    private final Set<ModuleLayer> parents;
     private final List<ClassLoader> allParentLoaders;
     private final Map<String, ModuleReference> ourModules = new HashMap<>();
     private final Map<String, SecureModuleReference> ourModulesSecure = new HashMap<>();
@@ -107,7 +106,7 @@ public class SecureModuleClassLoader extends SecureClassLoader {
 
         this.configuration = config;
         this.useCachedSignersForUnsignedCode = useCachedSignersForUnsignedCode;
-        this.parents = findAllParentLayers(parentLayers);
+        Set<ModuleLayer> parents = findAllParentLayers(parentLayers);
 
         // If we only have one parent, then use it as the main parent so we don't duplicate resources
         if (parent == null && parentLoaders.size() == 1) {
@@ -115,7 +114,7 @@ public class SecureModuleClassLoader extends SecureClassLoader {
             this.allParentLoaders = Collections.emptyList();
         } else {
             this.parent = parent;
-            this.allParentLoaders = !parentLoaders.isEmpty() ? parentLoaders : findAllParentLoaders(this.parents);
+            this.allParentLoaders = !parentLoaders.isEmpty() ? parentLoaders : findAllParentLoaders(parents);
         }
 
         // Find all modules for this config, if the reference is our special Secure reference, we can define packages with security info.
@@ -145,7 +144,7 @@ public class SecureModuleClassLoader extends SecureClassLoader {
                 if (other.configuration() == this.configuration)
                     continue;
 
-                var layer = this.parents.stream()
+                var layer = parents.stream()
                     .filter(p -> p.configuration() == other.configuration())
                     .findFirst()
                     .orElse(null);
@@ -153,7 +152,7 @@ public class SecureModuleClassLoader extends SecureClassLoader {
                 if (layer == null)
                     throw new IllegalStateException("Could not find parent layer for module `" + other.name() + "` read by `" + module.name() + "`");
 
-                var cl = layer == null ? null : layer.findLoader(other.name());
+                var cl = layer.findLoader(other.name());
                 if (cl == null)
                     cl = ClassLoader.getPlatformClassLoader();
 
@@ -175,7 +174,7 @@ public class SecureModuleClassLoader extends SecureClassLoader {
 
     protected byte[] getClassBytes(ModuleReader reader, ModuleReference ref, String name) throws IOException {
         var read = reader.open(classToResource(name));
-        if (!read.isPresent())
+        if (read.isEmpty())
             return new byte[0];
 
         try (var is = read.get()) {
@@ -731,6 +730,9 @@ public class SecureModuleClassLoader extends SecureClassLoader {
                     stack.push(parent);
             }
         }
+
+        if (ret.size() == 1)
+            return Collections.singleton(ret.iterator().next());
 
         return ret;
     }

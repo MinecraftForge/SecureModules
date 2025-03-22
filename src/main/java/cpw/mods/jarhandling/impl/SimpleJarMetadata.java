@@ -16,10 +16,14 @@ public record SimpleJarMetadata(String name, String version, Set<String> pkgs, L
     @Override
     public ModuleDescriptor descriptor() {
         var bld = ModuleDescriptor.newAutomaticModule(name());
-        if (version()!=null)
+        if (version() != null)
             bld.version(version());
         bld.packages(pkgs());
-        providers.stream().filter(p->!p.providers().isEmpty()).forEach(p->bld.provides(p.serviceName(), p.providers()));
+        for (SecureJar.Provider p : providers) {
+            if (!p.providers().isEmpty()) {
+                bld.provides(p.serviceName(), p.providers());
+            }
+        }
         return bld.build();
     }
 }

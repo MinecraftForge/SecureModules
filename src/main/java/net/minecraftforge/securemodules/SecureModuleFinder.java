@@ -56,7 +56,7 @@ public class SecureModuleFinder implements ModuleFinder {
         return new SecureModuleFinder(jars);
     }
 
-    private static class Reference extends SecureModuleReference {
+    private static final class Reference extends SecureModuleReference {
         private final SecureJar.ModuleDataProvider jar;
         private final Manifest manifest;
 

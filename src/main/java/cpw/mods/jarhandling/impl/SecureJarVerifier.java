@@ -16,7 +16,7 @@ import net.minecraftforge.unsafe.UnsafeHacks;
 public class SecureJarVerifier {
     private static final char[] LOOKUP = "0123456789abcdef".toCharArray();
     public static String toHexString(final byte[] bytes) {
-        final var buffer = new StringBuffer(2*bytes.length);
+        final var buffer = new StringBuilder(2*bytes.length);
         for (int i = 0, bytesLength = bytes.length; i < bytesLength; i++) {
             final int aByte = bytes[i] &0xff;
             buffer.append(LOOKUP[(aByte&0xf0)>>4]);

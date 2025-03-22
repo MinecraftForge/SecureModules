@@ -38,7 +38,7 @@ public class ModuleJarMetadata implements JarMetadata {
         }
     }
 
-    private class ModuleClassVisitor extends ClassVisitor {
+    private static final class ModuleClassVisitor extends ClassVisitor {
         private ModFileVisitor mfv;
 
         ModuleClassVisitor() {
@@ -55,7 +55,8 @@ public class ModuleJarMetadata implements JarMetadata {
             return mfv;
         }
     }
-    private class ModFileVisitor extends ModuleVisitor {
+
+    private static final class ModFileVisitor extends ModuleVisitor {
         private final ModuleDescriptor.Builder builder;
         private final Set<String> packages = new HashSet<>();
 
@@ -129,6 +130,7 @@ public class ModuleJarMetadata implements JarMetadata {
             return packages;
         }
     }
+
     @Override
     public String name() {
         return descriptor.name();
