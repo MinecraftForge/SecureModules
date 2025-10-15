@@ -296,14 +296,14 @@ public class UnionFileSystem extends FileSystem {
     public SeekableByteChannel newReadByteChannel(final UnionPath path) throws IOException {
         try {
             return findFirstFiltered(path)
-                    .map(this::byteChannel)
+                    .map(UnionFileSystem::byteChannel)
                     .orElseThrow(FileNotFoundException::new);
         } catch (UncheckedIOException ioe) {
             throw ioe.getCause();
         }
     }
 
-    private SeekableByteChannel byteChannel(final Path path) {
+    private static SeekableByteChannel byteChannel(final Path path) {
         try {
             return Files.newByteChannel(path, StandardOpenOption.READ);
         } catch (IOException e) {

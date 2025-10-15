@@ -47,7 +47,6 @@ public class Jar implements SecureJar {
     private final Manifest manifest;
     private final Hashtable<String, CodeSigner[]> pendingSigners = new Hashtable<>();
     private final Hashtable<String, CodeSigner[]> verifiedSigners = new Hashtable<>();
-    private final ManifestVerifier verifier = new ManifestVerifier();
     private final Map<String, StatusData> statusData = new HashMap<>();
     private final JarMetadata metadata;
     private final Path filesystemRoot;
@@ -210,15 +209,13 @@ public class Jar implements SecureJar {
                     fs = UFSP.newFileSystem(paths[0], Map.of("filter", (BiPredicate<String, String>)(a, b) -> true));
                 }
             } else {
-                var map = new HashMap<String, Object>();
-                if (filter != null)
-                    map.put("filter", filter);
-
                 var lst = new ArrayList<>(Arrays.asList(paths));
                 var base = lst.remove(0);
-                map.put("additional", lst);
 
-                fs = UFSP.newFileSystem(base, map);
+                if (filter == null)
+                    fs = UFSP.newFileSystem(base, Map.of("additional", lst));
+                else
+                    fs = UFSP.newFileSystem(base, Map.of("filter", filter, "additional", lst));
             }
         } catch (Throwable e) {
             return sneak(e);
@@ -239,7 +236,7 @@ public class Jar implements SecureJar {
         if (data != null)
             return data.signers();
 
-        var signers = verifier.verify(this.manifest, pendingSigners, verifiedSigners, name, bytes);
+        var signers = ManifestVerifier.verify(this.manifest, pendingSigners, verifiedSigners, name, bytes);
         if (signers == null) {
             this.statusData.put(name, new StatusData(Status.INVALID, null));
             return null;
@@ -286,8 +283,8 @@ public class Jar implements SecureJar {
         if (!Files.exists(services))
             return List.of();
 
-        try {
-            return Files.list(services)
+        try (var servicesDirStream = Files.list(services)) {
+            return servicesDirStream
                 .filter(Files::isRegularFile)
                 .map(path -> getProvider(path, filter))
                 .toList();
@@ -329,9 +326,9 @@ public class Jar implements SecureJar {
             return Map.of();
 
         var ret = new HashMap<String, String>();
-        var versions = new HashMap<String, Integer>();
-        try {
-            Files.walk(versionsDir)
+        var versions = new HashMap<String, Integer>(8);
+        try (var versionsDirStream = Files.walk(versionsDir)) {
+            versionsDirStream
                 .filter(Files::isRegularFile)
                 .map(filesystemRoot::relativize)
                 .forEach(path -> {
@@ -345,13 +342,13 @@ public class Jar implements SecureJar {
         } catch (IOException e) {
             sneak(e);
         }
-        return ret;
+        return Map.copyOf(ret);
     }
 
     private Set<String> gatherPackages() {
         var files = new HashSet<String>(this.nameOverrides.keySet());
-        try {
-            Files.walk(this.filesystemRoot)
+        try (var filesStream = Files.walk(this.filesystemRoot)) {
+            filesStream
                 .filter(p -> Files.isRegularFile(p) && !"META-INF".equals(p.getName(0).toString()))
                 .map(p -> this.filesystemRoot.relativize(p).toString().replace('\\', '/'))
                 .forEach(files::add);

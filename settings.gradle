@@ -18,7 +18,7 @@ dependencyResolutionManagement {
             plugin('eclipse-apt',  'com.diffplug.eclipse.apt'          ).version('3.43.0')
             plugin('signer',       'net.minecraftforge.gradlejarsigner').version('1.0.5')
 
-            version('asm', '9.7')
+            version('asm', '9.7.1')
             library('asm',         'org.ow2.asm', 'asm'        ).versionRef('asm')
             library('asm-tree',    'org.ow2.asm', 'asm-tree'   ).versionRef('asm')
             library('asm-commons', 'org.ow2.asm', 'asm-commons').versionRef('asm')
