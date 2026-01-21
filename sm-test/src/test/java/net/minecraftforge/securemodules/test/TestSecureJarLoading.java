@@ -14,6 +14,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -101,6 +102,17 @@ public class TestSecureJarLoading {
             assertNull(cs, "Unexpected Code Signers");
         });
         assertEquals(List.of(), seen, "Unexpected contents in empty jar");
+    }
+
+    @Test // Jar has invalid URL characters, Java doesn't escape []'s properly so we need to force it to
+    void testInvalidUri() throws Exception {
+        var path = Paths.get("src/test/resources/invalid url[]%20.jar");
+        var fileUri = path.toUri();
+        var jar = (Jar)SecureJar.from(path);
+        var uri = jar.getURI();
+        assertEquals("jar:" + fileUri.toString() + "!/", uri.toString());
+        var fs = FileSystems.getFileSystem(uri);
+        assertEquals(jar.getRootPath().getFileSystem(), fs, "Non-matching file systems after URI cycle");
     }
 
     @Test // Test opening the same file multiple times.

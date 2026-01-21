@@ -56,6 +56,7 @@ public class Jar implements SecureJar {
     private final JarModuleDataProvider moduleDataProvider;
     private final Set<String> packages;
     private final List<Provider> providers;
+    private final URI filesystemRootUri;
 
     @Override
     public ModuleDataProvider moduleDataProvider() {
@@ -85,6 +86,7 @@ public class Jar implements SecureJar {
         this.moduleDataProvider = new JarModuleDataProvider(this);
 
         this.filesystemRoot = newFileSystem(pathfilter, validPaths);
+        this.filesystemRootUri = fixUri(this.filesystemRoot);
         this.filesystemPrimary = validPaths[validPaths.length - 1];
         this.manifest = findManifest(validPaths, defaultManifest);
         this.nameOverrides = gatherVersionedFiles();
@@ -264,7 +266,7 @@ public class Jar implements SecureJar {
     }
 
     public URI getURI() {
-        return this.filesystemRoot.toUri();
+        return this.filesystemRootUri;
     }
 
     public ModuleDescriptor computeDescriptor() {
@@ -407,6 +409,51 @@ public class Jar implements SecureJar {
             return defaultManifest != null ? defaultManifest.get() : new Manifest();
         } catch (IOException e) {
             return sneak(e);
+        }
+    }
+
+    // ZipPath has an issue where it decodes the URI to prevent double encoding, but then
+    // uses a constructor of URI that doesn't encode brackets.
+    // This causes an invalid URI when doing the Path.of(zipPath.toUri()).
+    // So lets see if there are []s and then encode them.
+    private static URI fixUri(Path path) {
+        var uri = path.toUri();
+        // If we're not jar (ZipPath) then trust it isn't broken
+        // this could come back to bite me, but I don't want to go down the road later.
+        if (!"jar".equals(uri.getScheme()))
+            return uri;
+
+        var ssp = uri.getRawSchemeSpecificPart();
+        var hasBrackets = ssp.indexOf('[') != -1 || ssp.indexOf(']') != -1;
+        if (!hasBrackets)
+            return uri;
+
+        int len = uri.getScheme().length() + 1;
+        len += ssp.length() + 2; // At least one bracket, so 2 extra
+        if (uri.getRawFragment() != null)
+            len += uri.getRawFragment().length() + 1;
+
+        var buf = new StringBuilder(len);
+        buf.append(uri.getScheme()).append(':');
+
+        for (int x = 0; x < ssp.length(); x++) {
+            var c = ssp.charAt(x);
+            if (c == '[')
+                buf.append("%5B");
+            else if (c == ']')
+                buf.append("%5D");
+            else
+                buf.append(c);
+        }
+
+        if (uri.getRawFragment() != null)
+            buf.append('#').append(uri.getRawFragment());
+
+        try {
+            // we have to use the full string because all other constructors try to do escaping, but don't escape [] correctly.
+            return new URI(buf.toString());
+        } catch (Exception ex) {
+            throw new AssertionError(ex);
         }
     }
 
